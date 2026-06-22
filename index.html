@@ -16,6 +16,12 @@
       <div class="logo">PULSE</div>
       <ul class="nav-links">
         <li>
+          <button data-target="profile" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="nav-label">Profile</span>
+          </button>
+        </li>
+        <li>
           <button data-target="dashboard" class="nav-btn active">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
             <span class="nav-label">Dashboard</span>
@@ -258,7 +264,42 @@
         </div>
       </section>
 
-      <!-- View 5: Empty State -->
+      <!-- View 5: Profile -->
+      <section id="view-profile" class="view">
+        <header class="profile-header card">
+          <div class="avatar-container">
+            <label for="avatar-upload" class="avatar-upload-label">
+              <div id="avatar-preview" class="profile-initials"></div>
+            </label>
+            <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+          </div>
+        </header>
+        <div class="profile-content">
+          <div class="card settings-style-card">
+            <div class="settings-row">
+              <span class="settings-row-label">Name</span>
+              <input type="text" id="profile-name-input" class="profile-input" value="">
+            </div>
+            <div class="settings-row">
+              <span class="settings-row-label">Email</span>
+              <input type="email" id="profile-email-input" class="profile-input" value="">
+            </div>
+          </div>
+          
+          <div class="complete-stats profile-stats" id="profile-stats">
+            <!-- Rendered by JS -->
+          </div>
+          
+          <div class="share-btn-wrap" id="share-progress-wrap" onclick="shareProgress()">
+            <div class="card share-card">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span>Share Progress</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View 6: Empty State -->
       <section id="view-empty" class="view">
         <header class="view-header empty-header">
           <div>
