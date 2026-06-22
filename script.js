@@ -278,7 +278,7 @@ window.renderOnboarding = () => {
     <div class="onboarding-question" style="animation: fadeUp 0.3s ease;">
       ${questionHtml}
     </div>
-    ${step > 1 ? \`<div class="back-link" onclick="goBackOnboarding()">← Back</div>\` : ''}
+    ${step > 1 ? `<div class="back-link" onclick="goBackOnboarding()">← Back</div>` : ''}
   `;
 };
 
