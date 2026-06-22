@@ -807,10 +807,14 @@ function drawChart() {
       
       const barH = padTop + chartH - p.y;
       
-      // Neon gradient matching the month chart's fill style
+      // Dynamic color based on theme
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const colorSolid = isLight ? '#4a7c2f' : '#C6FF3D';
+      const colorFade = isLight ? 'rgba(74,124,47,0.05)' : 'rgba(198,255,61,0.05)';
+      
       const grad = ctx.createLinearGradient(0, p.y, 0, padTop + chartH);
-      grad.addColorStop(0, '#C6FF3D'); // solid neon at the top
-      grad.addColorStop(1, 'rgba(198,255,61,0.05)'); // faded at the bottom
+      grad.addColorStop(0, colorSolid);
+      grad.addColorStop(1, colorFade);
       
       ctx.fillStyle = grad;
       ctx.beginPath();
@@ -834,9 +838,13 @@ function drawChart() {
       ctx.lineTo(segPoints[segPoints.length - 1].x, padTop + chartH);
       ctx.lineTo(segPoints[0].x, padTop + chartH);
       ctx.closePath();
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const colorFade = isLight ? 'rgba(74,124,47,0.15)' : 'rgba(198,255,61,0.15)';
+      const colorZero = isLight ? 'rgba(74,124,47,0)' : 'rgba(198,255,61,0)';
+      
       const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
-      grad.addColorStop(0, 'rgba(198,255,61,0.15)');
-      grad.addColorStop(1, 'rgba(198,255,61,0)');
+      grad.addColorStop(0, colorFade);
+      grad.addColorStop(1, colorZero);
       ctx.fillStyle = grad;
       ctx.fill();
     };
@@ -856,7 +864,10 @@ function drawChart() {
       if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
       else          { ctx.lineTo(p.x, p.y); }
     });
-    ctx.strokeStyle = '#C6FF3D';
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const colorSolid = isLight ? '#4a7c2f' : '#C6FF3D';
+
+    ctx.strokeStyle = colorSolid;
     ctx.lineWidth   = 2.5;
     ctx.lineJoin    = 'round';
     ctx.lineCap     = 'round';
@@ -867,9 +878,9 @@ function drawChart() {
       if (!p) return;
       ctx.beginPath();
       ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-      ctx.fillStyle   = '#C6FF3D';
+      ctx.fillStyle   = colorSolid;
       ctx.fill();
-      ctx.strokeStyle = '#16171B'; // card bg
+      ctx.strokeStyle = isLight ? '#FFFFFF' : '#16171B'; // card bg
       ctx.lineWidth   = 2;
       ctx.stroke();
     });
