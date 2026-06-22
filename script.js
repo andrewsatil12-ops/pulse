@@ -715,54 +715,83 @@ function drawChart() {
     };
   });
 
-  // 3. Fill under line — segment by segment between nulls
-  const flushFill = (segPoints) => {
-    if (segPoints.length < 2) return;
+  if (state.chartTimeframe === 'week') {
+    // --- Bar Chart for Week ---
+    // Bar width is responsive, max 32px
+    const barW = Math.min((chartW / data.length) * 0.5, 32);
+    
+    points.forEach((p) => {
+      if (!p) return; // Skip rest days (null)
+      
+      const barH = padTop + chartH - p.y;
+      
+      // Neon gradient matching the month chart's fill style
+      const grad = ctx.createLinearGradient(0, p.y, 0, padTop + chartH);
+      grad.addColorStop(0, '#C6FF3D'); // solid neon at the top
+      grad.addColorStop(1, 'rgba(198,255,61,0.05)'); // faded at the bottom
+      
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      // Draw rounded rectangle for the bar
+      if (ctx.roundRect) {
+        ctx.roundRect(p.x - barW / 2, p.y, barW, barH, [4, 4, 0, 0]);
+      } else {
+        ctx.rect(p.x - barW / 2, p.y, barW, barH);
+      }
+      ctx.fill();
+    });
+  } else {
+    // --- Line Chart for Month & Year ---
+    
+    // 3. Fill under line — segment by segment
+    const flushFill = (segPoints) => {
+      if (segPoints.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(segPoints[0].x, segPoints[0].y);
+      segPoints.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.lineTo(segPoints[segPoints.length - 1].x, padTop + chartH);
+      ctx.lineTo(segPoints[0].x, padTop + chartH);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+      grad.addColorStop(0, 'rgba(198,255,61,0.15)');
+      grad.addColorStop(1, 'rgba(198,255,61,0)');
+      ctx.fillStyle = grad;
+      ctx.fill();
+    };
+
+    let seg = [];
+    points.forEach(p => {
+      if (!p) { flushFill(seg); seg = []; }
+      else    { seg.push(p); }
+    });
+    flushFill(seg);
+
+    // 4. Draw line
     ctx.beginPath();
-    ctx.moveTo(segPoints[0].x, segPoints[0].y);
-    segPoints.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.lineTo(segPoints[segPoints.length - 1].x, padTop + chartH);
-    ctx.lineTo(segPoints[0].x, padTop + chartH);
-    ctx.closePath();
-    const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
-    grad.addColorStop(0, 'rgba(198,255,61,0.15)');
-    grad.addColorStop(1, 'rgba(198,255,61,0)');
-    ctx.fillStyle = grad;
-    ctx.fill();
-  };
-
-  let seg = [];
-  points.forEach(p => {
-    if (!p) { flushFill(seg); seg = []; }
-    else    { seg.push(p); }
-  });
-  flushFill(seg);
-
-  // 4. Draw line — lift pen at null gaps
-  ctx.beginPath();
-  let penDown = false;
-  points.forEach(p => {
-    if (!p) { penDown = false; return; }
-    if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
-    else          { ctx.lineTo(p.x, p.y); }
-  });
-  ctx.strokeStyle = '#C6FF3D';
-  ctx.lineWidth   = 2.5;
-  ctx.lineJoin    = 'round';
-  ctx.lineCap     = 'round';
-  ctx.stroke();
-
-  // 5. Data point dots
-  points.forEach(p => {
-    if (!p) return;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fillStyle   = '#C6FF3D';
-    ctx.fill();
-    ctx.strokeStyle = '#16171B'; // card bg
-    ctx.lineWidth   = 2;
+    let penDown = false;
+    points.forEach(p => {
+      if (!p) { penDown = false; return; }
+      if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
+      else          { ctx.lineTo(p.x, p.y); }
+    });
+    ctx.strokeStyle = '#C6FF3D';
+    ctx.lineWidth   = 2.5;
+    ctx.lineJoin    = 'round';
+    ctx.lineCap     = 'round';
     ctx.stroke();
-  });
+
+    // 5. Data point dots
+    points.forEach(p => {
+      if (!p) return;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle   = '#C6FF3D';
+      ctx.fill();
+      ctx.strokeStyle = '#16171B'; // card bg
+      ctx.lineWidth   = 2;
+      ctx.stroke();
+    });
+  }
 }
 
 // Redraw chart on resize using ResizeObserver for accurate flexible container bounds
