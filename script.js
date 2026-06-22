@@ -683,7 +683,7 @@ window.addEventListener('resize', () => {
   if (state.currentView === 'analytics') {
     drawChart();
   }
-}
+});
 
 // --- Settings Render ---
 function renderSettings() {
