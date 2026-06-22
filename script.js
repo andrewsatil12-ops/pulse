@@ -65,6 +65,10 @@ const mockData = {
 
 // Initialization
 let restTimerInterval = null;
+let restRemaining = 0;
+let restIsRunning = false;
+let restHasStarted = false;
+
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
@@ -379,14 +383,19 @@ function renderCurrentExercise() {
         <div class="ring-container timer-ring-container">
           <svg class="activity-ring" viewBox="0 0 100 100">
             <circle class="ring-bg" cx="50" cy="50" r="40"></circle>
-            <circle class="ring-progress" id="timer-ring" cx="50" cy="50" r="40"></circle>
+            <circle class="ring-progress" id="timer-ring" cx="50" cy="50" r="40" style="stroke-dasharray: 251.327; stroke-dashoffset: 0;"></circle>
           </svg>
           <div class="ring-value">
-            <span class="value number" id="timer-value">90</span><span class="unit">s</span>
+            <span class="value number" id="timer-value">${mockData.workout.restTime || 90}</span><span class="unit">s</span>
           </div>
         </div>
         <div class="card-labels">
-          <span class="label" id="timer-label">Resting</span>
+          <span class="label" id="timer-label">Ready</span>
+        </div>
+        <div class="timer-controls">
+          <button class="timer-btn primary" onclick="startRestTimerAction()" id="timer-start-btn">Start</button>
+          <button class="timer-btn" onclick="pauseRestTimerAction()" id="timer-pause-btn">Pause</button>
+          <button class="timer-btn" onclick="resetRestTimerAction()">Reset</button>
         </div>
       </div>
     </div>
@@ -401,21 +410,26 @@ window.completeSet = function() {
   renderExerciseList();
   renderCurrentExercise();
   
-  if (ex.completedSets < ex.sets) {
-    startRestTimer(90);
-  } else {
+  if (ex.completedSets >= ex.sets) {
     if(restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+    restIsRunning = false;
+    restHasStarted = false;
     const timerVal = document.getElementById('timer-value');
     const timerLabel = document.getElementById('timer-label');
     const timerRing = document.getElementById('timer-ring');
     if(timerVal) { timerVal.innerText = '✓'; timerVal.nextElementSibling.style.display = 'none'; }
     if(timerLabel) timerLabel.innerText = 'Done';
     if(timerRing) timerRing.style.strokeDashoffset = 0;
+  } else {
+    // Reset timer back to Ready state instead of auto-starting
+    resetRestTimerAction();
   }
 };
 
 window.nextExercise = function() {
   if(restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+  restIsRunning = false;
+  restHasStarted = false;
   const session = mockData.workout.session;
   if(session.currentExerciseIndex < session.exercises.length - 1) {
     session.currentExerciseIndex++;
@@ -469,43 +483,87 @@ function renderSessionComplete() {
   `;
 }
 
-function startRestTimer(durationSeconds = 90) {
-  if(restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+function updateTimerUI() {
   const timerRing = document.getElementById('timer-ring');
   const timerVal = document.getElementById('timer-value');
   const timerLabel = document.getElementById('timer-label');
-  
+  const startBtn = document.getElementById('timer-start-btn');
   if (!timerRing || !timerVal) return;
   
-  let remaining = durationSeconds;
-  timerVal.innerText = remaining;
+  const durationSeconds = mockData.workout.restTime || 90;
+  
+  timerVal.innerText = restRemaining;
   if(timerVal.nextElementSibling) timerVal.nextElementSibling.style.display = 'inline';
-  if(timerLabel) timerLabel.innerText = 'Resting';
+  if(timerLabel) timerLabel.innerText = restIsRunning ? 'Resting' : (restHasStarted ? 'Paused' : 'Ready');
+  
+  if (startBtn) {
+    startBtn.innerText = restHasStarted && !restIsRunning ? 'Resume' : 'Start';
+  }
   
   const radius = timerRing.r.baseVal.value;
   const circumference = 2 * Math.PI * radius;
-  
   timerRing.style.strokeDasharray = `${circumference} ${circumference}`;
-  timerRing.style.transition = 'none';
-  timerRing.style.strokeDashoffset = 0;
+  const offset = circumference * (1 - (restRemaining / durationSeconds));
+  timerRing.style.strokeDashoffset = offset;
+}
+
+window.startRestTimerAction = function() {
+  if (restIsRunning) return;
+  if (!restHasStarted) {
+    restRemaining = mockData.workout.restTime || 90;
+    restHasStarted = true;
+  }
+  if (restRemaining <= 0) return;
   
-  // Trigger reflow
-  timerRing.getBoundingClientRect();
-  timerRing.style.transition = 'stroke-dashoffset 1s linear';
+  restIsRunning = true;
+  updateTimerUI();
+  
+  const timerRing = document.getElementById('timer-ring');
+  if(timerRing) timerRing.style.transition = 'stroke-dashoffset 1s linear';
   
   restTimerInterval = setInterval(() => {
-    remaining--;
-    if (remaining < 0) {
+    restRemaining--;
+    if (restRemaining < 0) {
       clearInterval(restTimerInterval);
       restTimerInterval = null;
+      restIsRunning = false;
+      restHasStarted = false;
+      
+      const timerVal = document.getElementById('timer-value');
+      const timerLabel = document.getElementById('timer-label');
       if(timerVal) { timerVal.innerText = 'Go'; timerVal.nextElementSibling.style.display = 'none'; }
       if(timerLabel) timerLabel.innerText = 'Next set';
+      
+      const startBtn = document.getElementById('timer-start-btn');
+      if (startBtn) startBtn.innerText = 'Start';
       return;
     }
-    timerVal.innerText = remaining;
-    const offset = circumference * (1 - (remaining / durationSeconds));
-    timerRing.style.strokeDashoffset = offset;
+    updateTimerUI();
   }, 1000);
+};
+
+window.pauseRestTimerAction = function() {
+  if (!restIsRunning) return;
+  clearInterval(restTimerInterval);
+  restTimerInterval = null;
+  restIsRunning = false;
+  
+  const timerRing = document.getElementById('timer-ring');
+  if(timerRing) timerRing.style.transition = 'none';
+  
+  updateTimerUI();
+};
+
+window.resetRestTimerAction = function() {
+  if(restTimerInterval) { clearInterval(restTimerInterval); restTimerInterval = null; }
+  restIsRunning = false;
+  restHasStarted = false;
+  restRemaining = mockData.workout.restTime || 90;
+  
+  const timerRing = document.getElementById('timer-ring');
+  if(timerRing) timerRing.style.transition = 'none';
+  
+  updateTimerUI();
 }
 
 // --- Plan Render ---
@@ -589,8 +647,25 @@ function renderDayDetail() {
       <div class="plan-exercise-list">
         ${exercisesHtml}
       </div>
+      <div class="plan-note-container">
+        <label class="plan-note-label">Notes</label>
+        <textarea class="plan-note-input" placeholder="Add a note about this session...">${dayObj.note || ''}</textarea>
+      </div>
     </div>
   `;
+
+  const noteInput = detail.querySelector('.plan-note-input');
+  if (noteInput) {
+    const dayIndex = state.plan.selectedDayIndex;
+    let debounceTimer;
+    noteInput.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        mockData.plan.days[dayIndex].note = e.target.value;
+        showToast('Saved');
+      }, 800);
+    });
+  }
 }
 
 window.selectPlanDay = function(index) {
