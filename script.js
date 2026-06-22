@@ -16,6 +16,12 @@ const state = {
 };
 
 const mockData = {
+  profile: {
+    name: "User Name",
+    email: "user@example.com",
+    avatar: null
+  },
+
   dashboard: {
     activityPercent: 72,
     caloriesCurrent: 1840,
@@ -131,6 +137,7 @@ function switchView(viewId) {
   if (viewId === 'plan') renderPlan();
   if (viewId === 'settings') renderSettings();
   if (viewId === 'analytics') renderAnalytics();
+  if (viewId === 'profile') renderProfile();
 }
 
 window.switchView = switchView;
@@ -1010,3 +1017,129 @@ function showToast(message) {
   toast.classList.add('visible');
   setTimeout(() => toast.classList.remove('visible'), 2000);
 }
+
+// --- Profile Logic ---
+function renderProfile() {
+  const profileNameInput = document.getElementById('profile-name-input');
+  const profileEmailInput = document.getElementById('profile-email-input');
+  const avatarUpload = document.getElementById('avatar-upload');
+  const shareBtnWrap = document.getElementById('share-progress-wrap');
+  
+  if (profileNameInput) profileNameInput.value = mockData.profile.name;
+  if (profileEmailInput) profileEmailInput.value = mockData.profile.email;
+  
+  updateAvatarPreview();
+  renderProfileStats();
+
+  let debounceTimer;
+  const saveProfile = () => {
+    mockData.profile.name = profileNameInput.value;
+    mockData.profile.email = profileEmailInput.value;
+    updateAvatarPreview();
+    showToast('Saved');
+  };
+
+  if (profileNameInput) {
+    profileNameInput.oninput = () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(saveProfile, 600); };
+  }
+  if (profileEmailInput) {
+    profileEmailInput.oninput = () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(saveProfile, 600); };
+  }
+
+  if (avatarUpload) {
+    avatarUpload.onchange = handleAvatarUpload;
+  }
+
+  if (shareBtnWrap) {
+    if (!navigator.share) {
+      shareBtnWrap.style.opacity = '0.5';
+      shareBtnWrap.style.cursor = 'not-allowed';
+      shareBtnWrap.style.pointerEvents = 'none'; // prevent hover/click propagating to child
+      shareBtnWrap.onclick = (e) => {
+        e.preventDefault();
+        showToast('Open on mobile to share');
+      };
+    }
+  }
+}
+
+function updateAvatarPreview() {
+  const avatarPreview = document.getElementById('avatar-preview');
+  if (!avatarPreview) return;
+  
+  if (mockData.profile.avatar) {
+    avatarPreview.innerHTML = `<img src="${mockData.profile.avatar}" class="profile-avatar-img" />`;
+  } else {
+    const initials = (mockData.profile.name || "UN").split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    avatarPreview.innerHTML = `<span>${initials}</span>`;
+  }
+}
+
+function handleAvatarUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX_SIZE = 192;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > MAX_SIZE) {
+          height *= MAX_SIZE / width;
+          width = MAX_SIZE;
+        }
+      } else {
+        if (height > MAX_SIZE) {
+          width *= MAX_SIZE / height;
+          height = MAX_SIZE;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      
+      mockData.profile.avatar = canvas.toDataURL(file.type);
+      updateAvatarPreview();
+      showToast('Saved');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderProfileStats() {
+  const container = document.getElementById('profile-stats');
+  if (!container) return;
+  
+  container.innerHTML = `
+    <div class="complete-stat">
+      <span class="value">14</span>
+      <span class="label">Total Sessions</span>
+    </div>
+    <div class="complete-stat">
+      <span class="value" style="font-size: 1.5rem">142,800</span>
+      <span class="label">Total Vol (kg)</span>
+    </div>
+    <div class="complete-stat">
+      <span class="value">${mockData.dashboard.streak}</span>
+      <span class="label">Current Streak</span>
+    </div>
+  `;
+}
+
+window.shareProgress = function() {
+  if (navigator.share) {
+    navigator.share({
+      title: 'Pulse',
+      text: 'Check out my workout progress!',
+      url: window.location.href
+    }).catch(console.error);
+  }
+};
