@@ -49,7 +49,17 @@ const mockData = {
   analytics: {
     week: [1200, 1500, 0, 1800, 1600, 2000, 0],
     month: [4500, 5200, 4800, 6100], // weeks in month
-    year: [50000, 52000, 48000, 55000, 60000, 62000, 58000, 65000, 70000, 72000, 75000, 80000] // months
+    year: [50000, 52000, 48000, 55000, 60000, 62000, 58000, 65000, 70000, 72000, 75000, 80000], // months
+    timeline: [
+      { date: 'Jun 19', event: 'Personal record — Back Squat 92.5 kg', type: 'pr' },
+      { date: 'Jun 17', event: 'Session complete — Upper Body A · 14,200 kg volume', type: 'session' },
+      { date: 'Jun 15', event: '5-day streak reached', type: 'streak' },
+      { date: 'Jun 14', event: 'Session complete — Lower Body A · 11,080 kg volume', type: 'session' },
+      { date: 'Jun 12', event: 'Personal record — Romanian Deadlift 65 kg', type: 'pr' },
+      { date: 'Jun 10', event: 'Session complete — Full Body · 9,440 kg volume', type: 'session' },
+      { date: 'Jun 8',  event: 'Personal record — Leg Press 125 kg', type: 'pr' },
+      { date: 'Jun 6',  event: '10-day streak reached', type: 'streak' }
+    ]
   }
 };
 
@@ -605,6 +615,31 @@ function initAnalyticsToggles() {
 
 function renderAnalytics() {
   drawChart();
+
+  const container = document.querySelector('#view-analytics .analytics-content');
+  if (!container) return;
+
+  const existing = document.getElementById('timeline-card');
+  if (existing) existing.remove();
+
+  const timelineHTML = `
+    <div class="card timeline-card" id="timeline-card">
+      <span class="label">Activity</span>
+      <div class="timeline-list">
+        ${mockData.analytics.timeline.map(item => `
+          <div class="timeline-item ${item.type}">
+            <span class="timeline-date">${item.date}</span>
+            <div class="timeline-dot-col">
+              <div class="timeline-dot ${item.type}"></div>
+            </div>
+            <span class="timeline-event">${item.event}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  container.insertAdjacentHTML('beforeend', timelineHTML);
 }
 
 function drawChart() {
