@@ -668,7 +668,11 @@ function drawChart() {
   const validValues = data.filter(v => v !== null && v !== undefined);
   if (!validValues.length) return;
 
-  const maxVal = Math.max(...validValues) * 1.15;
+  const dataMin = Math.min(...validValues);
+  const dataMax = Math.max(...validValues);
+  const range   = dataMax - dataMin || dataMax;
+  const yMin    = Math.max(0, dataMin - range * 0.25);
+  const yMax    = dataMax + range * 0.15;
 
   const padLeft   = 10;
   const padRight  = 10;
@@ -706,7 +710,7 @@ function drawChart() {
     if (val === null || val === undefined) return null;
     return {
       x: padLeft + (i / (data.length - 1)) * chartW,
-      y: padTop  + chartH - (val / maxVal) * chartH
+      y: padTop  + chartH - ((val - yMin) / (yMax - yMin)) * chartH
     };
   });
 
