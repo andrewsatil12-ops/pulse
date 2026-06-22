@@ -128,9 +128,7 @@ function switchView(viewId) {
   }
 
   // Handle specific view logic
-  if (viewId === 'onboarding') {
-    resetOnboarding();
-  }
+  if (viewId === 'onboarding') renderOnboarding();
 
   if (viewId === 'dashboard') renderDashboard();
   if (viewId === 'workout') renderWorkout();
