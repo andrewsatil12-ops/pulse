@@ -79,40 +79,8 @@
       
       <!-- View 1: Onboarding -->
       <section id="view-onboarding" class="view">
-        <div class="onboarding-container">
-          <div class="progress-dots">
-            <span class="dot active"></span>
-            <span class="dot"></span>
-            <span class="dot"></span>
-          </div>
-          
-          <div class="onboarding-step active" id="step-1">
-            <h1 class="headline">What's your goal?</h1>
-            <div class="options-grid">
-              <button class="option-card" onclick="selectOption(this, 1)">Lose weight</button>
-              <button class="option-card" onclick="selectOption(this, 1)">Build strength</button>
-              <button class="option-card" onclick="selectOption(this, 1)">Improve conditioning</button>
-            </div>
-          </div>
-
-          <div class="onboarding-step" id="step-2">
-            <h1 class="headline">Where are you starting from?</h1>
-            <div class="options-grid">
-              <button class="option-card" onclick="selectOption(this, 2)">Beginner</button>
-              <button class="option-card" onclick="selectOption(this, 2)">Intermediate</button>
-              <button class="option-card" onclick="selectOption(this, 2)">Advanced</button>
-            </div>
-          </div>
-
-          <div class="onboarding-step" id="step-3">
-            <h1 class="headline">Days available per week</h1>
-            <div class="options-grid">
-              <button class="option-card" onclick="selectOption(this, 3)">2–3 days</button>
-              <button class="option-card" onclick="selectOption(this, 3)">4–5 days</button>
-              <button class="option-card" onclick="selectOption(this, 3)">6–7 days</button>
-            </div>
-            <button class="btn-primary start-btn" onclick="finishOnboarding()">Start</button>
-          </div>
+        <div class="onboarding-container" id="onboarding-dynamic-container">
+          <!-- Dynamically populated by JS -->
         </div>
       </section>
 
