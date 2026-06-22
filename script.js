@@ -648,12 +648,11 @@ function drawChart() {
   const ctx = canvas.getContext('2d');
 
   const rect = canvas.parentElement.getBoundingClientRect();
-  const H = 280;
+  const H = rect.height || 280; // fallback if hidden
   const W = rect.width;
   const dpr = window.devicePixelRatio || 1;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
-  canvas.style.height = `${H}px`;
   ctx.scale(dpr, dpr);
 
   const data = mockData.analytics[state.chartTimeframe];
@@ -766,11 +765,16 @@ function drawChart() {
   });
 }
 
-// Redraw chart on resize
-window.addEventListener('resize', () => {
+// Redraw chart on resize using ResizeObserver for accurate flexible container bounds
+const chartObserver = new ResizeObserver(() => {
   if (state.currentView === 'analytics') {
     drawChart();
   }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.querySelector('.chart-container');
+  if (container) chartObserver.observe(container);
 });
 
 // --- Settings Render ---
