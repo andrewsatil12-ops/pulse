@@ -648,11 +648,12 @@ function drawChart() {
   const ctx = canvas.getContext('2d');
 
   const rect = canvas.parentElement.getBoundingClientRect();
-  const H = Math.max(rect.height, 280);
+  const H = 280;
   const W = rect.width;
   const dpr = window.devicePixelRatio || 1;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
+  canvas.style.height = `${H}px`;
   ctx.scale(dpr, dpr);
 
   const data = mockData.analytics[state.chartTimeframe];
