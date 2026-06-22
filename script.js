@@ -148,43 +148,232 @@ window.goToWorkout = () => {
 
 // --- Onboarding Logic ---
 
-window.selectOption = (btn, step) => {
-  // Visual selection within step
-  const siblings = btn.parentElement.querySelectorAll('.option-card');
-  siblings.forEach(s => s.style.borderColor = 'var(--card-border)');
-  btn.style.borderColor = 'var(--accent-lime)';
+window.renderOnboarding = () => {
+  const container = document.getElementById('onboarding-dynamic-container');
+  if (!container) return;
 
-  // If not last step, move to next after short delay
-  if (step < 3) {
-    setTimeout(() => {
-      document.getElementById(`step-${step}`).classList.remove('active');
-      document.getElementById(`step-${step + 1}`).classList.add('active');
-      
-      const dots = document.querySelectorAll('.progress-dots .dot');
-      dots[step - 1].classList.remove('active');
-      dots[step].classList.add('active');
-      
-      state.onboardingStep = step + 1;
-    }, 300);
+  const step = state.onboarding.step;
+
+  if (step === 'loading') {
+    container.innerHTML = `
+      <div class="onboarding-loading">
+        <svg class="loading-pulse-ring" viewBox="0 0 100 100" width="80" height="80">
+          <circle cx="50" cy="50" r="40" stroke="var(--accent-lime)" stroke-width="8" fill="none"></circle>
+        </svg>
+        <div class="loading-message" id="loading-msg">Analyzing your goals...</div>
+      </div>
+    `;
+    
+    // Cycle messages
+    let msgIdx = 0;
+    const msgs = ["Analyzing your goals...", "Building your plan...", "Almost ready..."];
+    const msgEl = document.getElementById('loading-msg');
+    const interval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % msgs.length;
+      if (msgEl) {
+        msgEl.style.opacity = 0;
+        setTimeout(() => {
+          msgEl.innerText = msgs[msgIdx];
+          msgEl.style.opacity = 1;
+        }, 300);
+      } else {
+        clearInterval(interval);
+      }
+    }, 1500);
+    return;
+  }
+
+  if (step === 'results') {
+    container.innerHTML = `
+      <div class="onboarding-results">
+        <h1 class="results-headline">Your plan is ready</h1>
+        <p class="results-summary">${state.profile.summary || 'A customized plan based on your goals.'}</p>
+        
+        <div class="goals-row">
+          <div class="goal-item">
+            <span class="goal-label">Next 4 Weeks</span>
+            <span class="goal-text">${state.goals.short || '-'}</span>
+          </div>
+          <div class="goal-item">
+            <span class="goal-label">3 Months</span>
+            <span class="goal-text">${state.goals.mid || '-'}</span>
+          </div>
+          <div class="goal-item">
+            <span class="goal-label">Long Term</span>
+            <span class="goal-text">${state.goals.long || '-'}</span>
+          </div>
+        </div>
+
+        <div class="week-preview">
+          ${mockData.plan.days.map(d => `
+            <div class="week-preview-day ${d.type === 'Rest' ? 'rest' : 'active'}">
+              ${d.day[0]}
+            </div>
+          `).join('')}
+        </div>
+
+        <button class="btn-lets-go" onclick="finishOnboarding()">Let's go →</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Steps 1 to 5
+  let dotsHtml = '';
+  for(let i=1; i<=5; i++) {
+    dotsHtml += `<span class="dot ${i === step ? 'active' : ''}"></span>`;
+  }
+
+  let questionHtml = '';
+  if (step === 1) {
+    questionHtml = `
+      <h1 class="headline">What's your main goal?</h1>
+      <div class="options-grid">
+        <button class="option-card ${state.onboarding.answers.goal === 'Lose weight' ? 'selected' : ''}" onclick="handleOnboardingAnswer('goal', 'Lose weight')">Lose weight</button>
+        <button class="option-card ${state.onboarding.answers.goal === 'Build strength' ? 'selected' : ''}" onclick="handleOnboardingAnswer('goal', 'Build strength')">Build strength</button>
+        <button class="option-card ${state.onboarding.answers.goal === 'Improve conditioning' ? 'selected' : ''}" onclick="handleOnboardingAnswer('goal', 'Improve conditioning')">Improve conditioning</button>
+        <button class="option-card ${state.onboarding.answers.goal === 'Stay active' ? 'selected' : ''}" onclick="handleOnboardingAnswer('goal', 'Stay active')">Stay active</button>
+      </div>
+    `;
+  } else if (step === 2) {
+    questionHtml = `
+      <h1 class="headline">Current fitness level?</h1>
+      <div class="options-grid">
+        <button class="option-card ${state.onboarding.answers.level === 'Complete beginner' ? 'selected' : ''}" onclick="handleOnboardingAnswer('level', 'Complete beginner')">Complete beginner</button>
+        <button class="option-card ${state.onboarding.answers.level === 'Some experience' ? 'selected' : ''}" onclick="handleOnboardingAnswer('level', 'Some experience')">Some experience</button>
+        <button class="option-card ${state.onboarding.answers.level === 'Intermediate' ? 'selected' : ''}" onclick="handleOnboardingAnswer('level', 'Intermediate')">Intermediate</button>
+        <button class="option-card ${state.onboarding.answers.level === 'Advanced' ? 'selected' : ''}" onclick="handleOnboardingAnswer('level', 'Advanced')">Advanced</button>
+      </div>
+    `;
+  } else if (step === 3) {
+    questionHtml = `
+      <h1 class="headline">Days per week?</h1>
+      <div class="options-grid">
+        <button class="option-card ${state.onboarding.answers.days === '2 days' ? 'selected' : ''}" onclick="handleOnboardingAnswer('days', '2 days')">2 days</button>
+        <button class="option-card ${state.onboarding.answers.days === '3 days' ? 'selected' : ''}" onclick="handleOnboardingAnswer('days', '3 days')">3 days</button>
+        <button class="option-card ${state.onboarding.answers.days === '4 days' ? 'selected' : ''}" onclick="handleOnboardingAnswer('days', '4 days')">4 days</button>
+        <button class="option-card ${state.onboarding.answers.days === '5+ days' ? 'selected' : ''}" onclick="handleOnboardingAnswer('days', '5+ days')">5+ days</button>
+      </div>
+    `;
+  } else if (step === 4) {
+    questionHtml = `
+      <h1 class="headline">What's your timeframe?</h1>
+      <div class="options-grid">
+        <button class="option-card ${state.onboarding.answers.timeframe === '1 month' ? 'selected' : ''}" onclick="handleOnboardingAnswer('timeframe', '1 month')">1 month</button>
+        <button class="option-card ${state.onboarding.answers.timeframe === '3 months' ? 'selected' : ''}" onclick="handleOnboardingAnswer('timeframe', '3 months')">3 months</button>
+        <button class="option-card ${state.onboarding.answers.timeframe === '6 months' ? 'selected' : ''}" onclick="handleOnboardingAnswer('timeframe', '6 months')">6 months</button>
+        <button class="option-card ${state.onboarding.answers.timeframe === '1 year+' ? 'selected' : ''}" onclick="handleOnboardingAnswer('timeframe', '1 year+')">1 year+</button>
+      </div>
+    `;
+  } else if (step === 5) {
+    questionHtml = `
+      <h1 class="headline">Any limitations?</h1>
+      <textarea id="obs-limitation" class="onboarding-textarea" placeholder="e.g. bad knees, lower back pain… or leave blank">${state.onboarding.answers.limitations || ''}</textarea>
+      <button class="btn-continue" onclick="handleOnboardingAnswer('limitations', document.getElementById('obs-limitation').value)">Continue</button>
+    `;
+  }
+
+  container.innerHTML = `
+    <div class="progress-dots">${dotsHtml}</div>
+    <div class="onboarding-question" style="animation: fadeUp 0.3s ease;">
+      ${questionHtml}
+    </div>
+    ${step > 1 ? \`<div class="back-link" onclick="goBackOnboarding()">← Back</div>\` : ''}
+  `;
+};
+
+window.handleOnboardingAnswer = (key, value) => {
+  state.onboarding.answers[key] = value;
+  if (state.onboarding.step < 5) {
+    state.onboarding.step++;
+    renderOnboarding();
+  } else {
+    state.onboarding.step = 'loading';
+    renderOnboarding();
+    generatePlan();
+  }
+};
+
+window.goBackOnboarding = () => {
+  if (state.onboarding.step > 1 && typeof state.onboarding.step === 'number') {
+    state.onboarding.step--;
+    renderOnboarding();
   }
 };
 
 window.finishOnboarding = () => {
-  // In a real app, save preferences here
   switchView('dashboard');
 };
 
 function resetOnboarding() {
-  document.querySelectorAll('.onboarding-step').forEach(s => s.classList.remove('active'));
-  document.getElementById('step-1').classList.add('active');
+  state.onboarding.step = 1;
+  renderOnboarding();
+}
+
+async function generatePlan() {
+  const ans = state.onboarding.answers;
+  const prompt = \`User answers:
+- Main goal: \${ans.goal}
+- Fitness level: \${ans.level}
+- Days per week: \${ans.days}
+- Timeframe: \${ans.timeframe}
+- Physical limitations: \${ans.limitations || "None"}\`;
+
+  const sysPrompt = \`You are a fitness coach AI inside a workout app called Pulse. 
+The user has just completed onboarding. Based on their answers, generate a personalized weekly training plan and goals.
+Respond ONLY with a valid JSON object matching this exact schema — no markdown, no explanation, no code fences:
+{
+  "profile_summary": "...",
+  "goals": { "short": "...", "mid": "...", "long": "..." },
+  "weekly_plan": [
+    { "day": "Mon", "label": "Monday", "type": "...", "status": "planned", "exercises": [ { "name": "...", "sets": 0, "reps": 0, "load": 0, "unit": "kg" } ] }
+  ]
+}
+Make rest days have an empty exercises array and type "Rest".
+Tailor the exercises, sets, reps, and loads to the user's level and goal.
+Keep exercise names simple and common (Back Squat, Push-Up, Bench Press, etc).
+Include 7 days total.\`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1000,
+        system: sysPrompt,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    
+    if (!res.ok) throw new Error('API failed');
+    const data = await res.json();
+    let text = data.content[0].text.trim();
+    if (text.startsWith('\`\`\`json')) {
+      text = text.substring(7);
+      if (text.endsWith('\`\`\`')) text = text.substring(0, text.length - 3);
+    }
+    const parsed = JSON.parse(text);
+
+    mockData.plan.days = parsed.weekly_plan;
+    state.profile.summary = parsed.profile_summary;
+    state.goals = parsed.goals;
+    
+    const firstActive = parsed.weekly_plan.find(d => d.type !== 'Rest');
+    if (firstActive) {
+      mockData.workout.session.name = firstActive.type;
+      mockData.workout.session.exercises = firstActive.exercises;
+    }
+  } catch (err) {
+    console.error('Plan generation failed:', err);
+    showToast("Couldn't generate plan — using defaults");
+  }
   
-  document.querySelectorAll('.progress-dots .dot').forEach((d, i) => {
-    if(i===0) d.classList.add('active');
-    else d.classList.remove('active');
-  });
-  
-  document.querySelectorAll('.option-card').forEach(c => c.style.borderColor = 'var(--card-border)');
-  state.onboardingStep = 1;
+  state.onboarding.step = 'results';
+  renderOnboarding();
 }
 
 // --- Animation Utilities ---
