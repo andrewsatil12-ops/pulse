@@ -47,7 +47,7 @@ const mockData = {
     ]
   },
   analytics: {
-    week: [1200, 1500, 0, 1800, 1600, 2000, 0],
+    week: [1200, 1500, null, 1800, 1600, 2000, null],
     month: [4500, 5200, 4800, 6100], // weeks in month
     year: [50000, 52000, 48000, 55000, 60000, 62000, 58000, 65000, 70000, 72000, 75000, 80000], // months
     timeline: [
@@ -644,71 +644,120 @@ function renderAnalytics() {
 
 function drawChart() {
   const canvas = document.getElementById('analytics-chart');
-  if(!canvas) return;
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  
-  // Set actual size in memory (scaled for retina)
+
   const rect = canvas.parentElement.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  canvas.width = rect.width * dpr;
+  canvas.width  = rect.width  * dpr;
   canvas.height = rect.height * dpr;
   ctx.scale(dpr, dpr);
-  
-  const width = rect.width;
-  const height = rect.height;
-  
-  // Get data
-  const data = mockData.analytics[state.chartTimeframe];
-  const maxVal = Math.max(...data) * 1.1; // 10% headroom
-  
-  ctx.clearRect(0, 0, width, height);
-  
-  if(data.length === 0) return;
 
-  const padX = 20;
-  const padY = 20;
-  const chartW = width - padX * 2;
-  const chartH = height - padY * 2;
-  
-  // Draw points & lines
-  ctx.beginPath();
-  const points = data.map((val, i) => {
-    const x = padX + (i / (data.length - 1)) * chartW;
-    const y = padY + chartH - ((val / maxVal) * chartH);
-    return {x, y};
+  const W = rect.width;
+  const H = rect.height;
+
+  const data = mockData.analytics[state.chartTimeframe];
+  const labels = {
+    week:  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    month: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+    year:  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  };
+
+  ctx.clearRect(0, 0, W, H);
+  if (!data.length) return;
+
+  const validValues = data.filter(v => v !== null && v !== undefined);
+  if (!validValues.length) return;
+
+  const maxVal = Math.max(...validValues) * 1.15;
+
+  const padLeft   = 10;
+  const padRight  = 10;
+  const padTop    = 20;
+  const padBottom = 32; // space for X labels
+  const chartW = W - padLeft - padRight;
+  const chartH = H - padTop - padBottom;
+
+  // Y-axis grid lines at 25%, 50%, 75%
+  [0.25, 0.5, 0.75].forEach(ratio => {
+    const y = padTop + chartH - (chartH * ratio);
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(W - padRight, y);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
   });
-  
-  // Smooth curve or straight lines. Let's do straight lines for "data speaks" functional vibe.
-  ctx.moveTo(points[0].x, points[0].y);
-  for(let i=1; i<points.length; i++) {
-    ctx.lineTo(points[i].x, points[i].y);
-  }
-  
-  ctx.strokeStyle = '#C6FF3D'; // Lime
-  ctx.lineWidth = 3;
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  
-  // Fill under line
-  ctx.lineTo(points[points.length-1].x, height);
-  ctx.lineTo(points[0].x, height);
-  ctx.closePath();
-  
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, 'rgba(198, 255, 61, 0.2)');
-  gradient.addColorStop(1, 'rgba(198, 255, 61, 0.0)');
-  ctx.fillStyle = gradient;
-  ctx.fill();
-  
-  // Draw data points
+
+  // X-axis labels
+  const xLabels = labels[state.chartTimeframe];
+  ctx.font = `500 11px Inter, sans-serif`;
+  ctx.fillStyle = 'rgba(134,137,142,0.9)';
+  ctx.textAlign = 'center';
+  data.forEach((_, i) => {
+    const x = padLeft + (i / (data.length - 1)) * chartW;
+    const label = xLabels[i] || '';
+    ctx.fillText(label, x, H - 8);
+  });
+
+  // Build points (null = skip)
+  const points = data.map((val, i) => {
+    if (val === null || val === undefined) return null;
+    return {
+      x: padLeft + (i / (data.length - 1)) * chartW,
+      y: padTop  + chartH - (val / maxVal) * chartH
+    };
+  });
+
+  // Draw line — lift pen at null gaps
+  ctx.beginPath();
+  let penDown = false;
   points.forEach(p => {
+    if (!p) { penDown = false; return; }
+    if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
+    else          { ctx.lineTo(p.x, p.y); }
+  });
+  ctx.strokeStyle = '#C6FF3D';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+
+  // Fill under line — segment by segment between nulls
+  let segStart = null;
+  const flushFill = (segPoints) => {
+    if (segPoints.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(segPoints[0].x, segPoints[0].y);
+    segPoints.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.lineTo(segPoints[segPoints.length - 1].x, padTop + chartH);
+    ctx.lineTo(segPoints[0].x, padTop + chartH);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+    grad.addColorStop(0, 'rgba(198,255,61,0.15)');
+    grad.addColorStop(1, 'rgba(198,255,61,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  };
+
+  let seg = [];
+  points.forEach(p => {
+    if (!p) { flushFill(seg); seg = []; }
+    else    { seg.push(p); }
+  });
+  flushFill(seg);
+
+  // Data point dots
+  points.forEach(p => {
+    if (!p) return;
     ctx.beginPath();
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#C6FF3D';
+    ctx.fillStyle   = '#C6FF3D';
     ctx.fill();
-    ctx.strokeStyle = '#16171B'; // card bg
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#16171B';
+    ctx.lineWidth   = 2;
     ctx.stroke();
   });
 }
