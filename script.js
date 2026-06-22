@@ -664,25 +664,25 @@ function drawChart() {
   };
 
   ctx.clearRect(0, 0, W, H);
-  if (!data.length) return;
+  if (!data || !data.length) return;
 
   const validValues = data.filter(v => v !== null && v !== undefined);
   if (!validValues.length) return;
 
   const dataMin = Math.min(...validValues);
   const dataMax = Math.max(...validValues);
-  const range   = dataMax - dataMin || dataMax;
+  const range   = dataMax - dataMin || dataMax || 1;
+  const yMin    = Math.max(0, dataMin - range * 0.15);
+  const yMax    = dataMax + range * 0.05;
+
   const padLeft   = 10;
   const padRight  = 10;
   const padTop    = 4;
-  const padBottom = 30;
+  const padBottom = 30; // space for X labels
   const chartW = W - padLeft - padRight;
   const chartH = H - padTop - padBottom;
 
-  const yMin = Math.max(0, dataMin - range * 0.15);
-  const yMax = dataMax + range * 0.05;
-
-  // Y-axis grid lines at 25%, 50%, 75%
+  // 1. Y-axis grid lines at 25%, 50%, 75%
   [0.25, 0.5, 0.75].forEach(ratio => {
     const y = padTop + chartH - (chartH * ratio);
     ctx.beginPath();
@@ -695,15 +695,16 @@ function drawChart() {
     ctx.setLineDash([]);
   });
 
-  // X-axis labels
+  // 2. X-axis labels
   const xLabels = labels[state.chartTimeframe];
   ctx.font = `500 11px Inter, sans-serif`;
   ctx.fillStyle = 'rgba(134,137,142,0.9)';
   ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   data.forEach((_, i) => {
     const x = padLeft + (i / (data.length - 1)) * chartW;
     const label = xLabels[i] || '';
-    ctx.fillText(label, x, H - 6);
+    ctx.fillText(label, x, H - 15);
   });
 
   // Build points (null = skip)
@@ -715,22 +716,7 @@ function drawChart() {
     };
   });
 
-  // Draw line — lift pen at null gaps
-  ctx.beginPath();
-  let penDown = false;
-  points.forEach(p => {
-    if (!p) { penDown = false; return; }
-    if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
-    else          { ctx.lineTo(p.x, p.y); }
-  });
-  ctx.strokeStyle = '#C6FF3D';
-  ctx.lineWidth   = 2.5;
-  ctx.lineJoin    = 'round';
-  ctx.lineCap     = 'round';
-  ctx.stroke();
-
-  // Fill under line — segment by segment between nulls
-  let segStart = null;
+  // 3. Fill under line — segment by segment between nulls
   const flushFill = (segPoints) => {
     if (segPoints.length < 2) return;
     ctx.beginPath();
@@ -753,14 +739,28 @@ function drawChart() {
   });
   flushFill(seg);
 
-  // Data point dots
+  // 4. Draw line — lift pen at null gaps
+  ctx.beginPath();
+  let penDown = false;
+  points.forEach(p => {
+    if (!p) { penDown = false; return; }
+    if (!penDown) { ctx.moveTo(p.x, p.y); penDown = true; }
+    else          { ctx.lineTo(p.x, p.y); }
+  });
+  ctx.strokeStyle = '#C6FF3D';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+
+  // 5. Data point dots
   points.forEach(p => {
     if (!p) return;
     ctx.beginPath();
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
     ctx.fillStyle   = '#C6FF3D';
     ctx.fill();
-    ctx.strokeStyle = '#16171B';
+    ctx.strokeStyle = '#16171B'; // card bg
     ctx.lineWidth   = 2;
     ctx.stroke();
   });
