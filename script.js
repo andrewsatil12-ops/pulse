@@ -671,15 +671,15 @@ function drawChart() {
   const dataMin = Math.min(...validValues);
   const dataMax = Math.max(...validValues);
   const range   = dataMax - dataMin || dataMax;
-  const yMin    = Math.max(0, dataMin - range * 0.25);
-  const yMax    = dataMax + range * 0.15;
-
   const padLeft   = 10;
   const padRight  = 10;
-  const padTop    = 20;
-  const padBottom = 32; // space for X labels
+  const padTop    = 4;
+  const padBottom = 30;
   const chartW = W - padLeft - padRight;
   const chartH = H - padTop - padBottom;
+
+  const yMin = Math.max(0, dataMin - range * 0.15);
+  const yMax = dataMax + range * 0.05;
 
   // Y-axis grid lines at 25%, 50%, 75%
   [0.25, 0.5, 0.75].forEach(ratio => {
@@ -702,7 +702,7 @@ function drawChart() {
   data.forEach((_, i) => {
     const x = padLeft + (i / (data.length - 1)) * chartW;
     const label = xLabels[i] || '';
-    ctx.fillText(label, x, H - 8);
+    ctx.fillText(label, x, H - 6);
   });
 
   // Build points (null = skip)
